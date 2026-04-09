@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#003359">
+<title>SeDR 2026 | Attendance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+  html { -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family:'Source Sans 3','Source Sans Pro',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:#eef0f1; color:#1a2a36; min-height:100vh;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  }
+
+  header {
+    background:#003359; color:#fff; padding:16px 20px;
+    display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:100;
+    box-shadow:0 2px 12px rgba(0,26,45,0.25);
+  }
+  .h-title { font-family:'Montserrat',sans-serif; font-size:17px; font-weight:700; letter-spacing:0.02em; }
+  .h-sub { font-size:12px; opacity:0.55; font-weight:400; }
+  .h-count {
+    background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2);
+    color:#fff; padding:5px 14px; border-radius:6px; font-size:13px;
+    font-family:'Source Sans 3',sans-serif; display:flex; align-items:center; gap:6px;
+  }
+  .h-count-num { font-family:'Montserrat',sans-serif; font-weight:800; font-size:18px; }
+
+  .wrap { max-width:640px; margin:0 auto; padding:20px 16px 48px; }
+  .card {
+    background:#fff; border-radius:12px; padding:22px;
+    margin-bottom:16px; box-shadow:0 1px 4px rgba(0,26,45,0.06);
+    border:1px solid #e4e6e7;
+  }
+  .title { font-family:'Montserrat',sans-serif; font-size:20px; font-weight:700; color:#003359; margin-bottom:16px; }
+
+  /* Tabs */
+  .tabs {
+    display:flex; gap:0; margin-bottom:16px; background:#fff;
+    border-radius:12px; overflow:hidden; border:1px solid #e4e6e7;
+    box-shadow:0 1px 4px rgba(0,26,45,0.06);
+  }
+  .tab {
+    flex:1; padding:14px 12px; font-family:'Source Sans 3',sans-serif;
+    font-size:14px; font-weight:600; border:none; cursor:pointer;
+    background:#fff; color:#7a8184; transition:all .2s;
+    border-bottom:3px solid transparent;
+  }
+  .tab.on { color:#003359; border-bottom-color:#003359; background:#eef2f6; }
+  .tab:hover:not(.on) { background:#f4f5f5; }
+
+  /* Badge status */
+  .badge-status {
+    display:flex; align-items:center; gap:8px;
+    padding:12px 16px; border-radius:8px;
+    font-size:13px; font-weight:600; color:#003359;
+    background:#dce6ee; border:1px solid #c8cccf;
+    margin-bottom:18px;
+  }
+  .badge-dot {
+    width:8px; height:8px; border-radius:50%;
+    background:#44D62C; flex-shrink:0;
+    animation:blink 2s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* Inputs */
+  .label { font-size:14px; font-weight:600; color:#003359; margin-bottom:8px; display:block; }
+  .hint { font-size:12px; color:#7a8184; line-height:1.5; margin-bottom:10px; }
+  .inp {
+    width:100%; padding:13px 14px; font-size:15px;
+    border:2px solid #c8cccf; border-radius:8px;
+    font-family:'Source Sans 3',sans-serif;
+    outline:none; color:#1a2a36; transition:border-color .2s; background:#fff;
+  }
+  .inp:focus { border-color:#003359; }
+  .inp::placeholder { color:#A5ACAF; text-transform:none; }
+  .inp.upper { text-transform:uppercase; }
+
+  /* Buttons */
+  .btn-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+  .btn-signin {
+    background:#003359; color:#fff; border:none; padding:15px 28px;
+    border-radius:8px; font-size:15px; font-weight:600; cursor:pointer;
+    font-family:'Source Sans 3',sans-serif; width:100%; transition:background .2s;
+  }
+  .btn-signin:hover { background:#1a5280; }
+  .btn-signin:active { background:#001a2d; }
+  .btn-signout {
+    background:#fff; color:#003359; border:2px solid #003359;
+    padding:13px 24px; border-radius:8px; font-size:15px; font-weight:600;
+    cursor:pointer; font-family:'Source Sans 3',sans-serif; width:100%; transition:all .2s;
+  }
+  .btn-signout:hover { background:#eef2f6; }
+
+  /* Toast */
+  .toast-container {
+    position:fixed; top:70px; left:50%; transform:translateX(-50%);
+    z-index:200; display:flex; flex-direction:column; gap:8px;
+    width:90%; max-width:500px; pointer-events:none;
+  }
+  .toast {
+    padding:14px 18px; border-radius:10px; font-size:14px; font-weight:600;
+    animation:slideIn 0.3s ease-out; display:flex; align-items:center; gap:10px;
+    box-shadow:0 4px 20px rgba(0,26,45,0.2); pointer-events:auto;
+    font-family:'Source Sans 3',sans-serif;
+  }
+  .toast.success { background:#003359; color:#44D62C; border:1px solid #1a5280; }
+  .toast.error { background:#003359; color:#ff6b6b; border:1px solid #1a5280; }
+  .toast.info { background:#003359; color:#fff; border:1px solid #1a5280; }
+  @keyframes slideIn { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
+
+  /* Log items */
+  .log-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .log-header .title { margin-bottom:0; font-size:16px; }
+  .log-count { font-size:12px; color:#7a8184; font-weight:600; }
+  .log-list { max-height:400px; overflow-y:auto; }
+  .log-list::-webkit-scrollbar { width:4px; }
+  .log-list::-webkit-scrollbar-thumb { background:#c8cccf; border-radius:2px; }
+
+  .log-item {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 14px; border-radius:8px; margin-bottom:6px;
+    border-left:4px solid transparent; font-size:14px;
+  }
+  .log-item.in { background:#ddf7d8; border-left-color:#44D62C; }
+  .log-item.out { background:#fde8e8; border-left-color:#e74c4c; }
+
+  .log-name { font-weight:600; color:#1a2a36; }
+  .log-meta { font-size:12px; color:#7a8184; margin-top:1px; }
+  .log-badge {
+    font-size:11px; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.06em; padding:3px 10px; border-radius:20px; white-space:nowrap;
+  }
+  .log-item.in .log-badge { background:#44D62C; color:#003359; }
+  .log-item.out .log-badge { background:#e74c4c; color:#fff; }
+
+  .empty-log { text-align:center; color:#A5ACAF; font-size:14px; padding:30px 10px; }
+
+  /* Summary tab */
+  .summary-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 14px; border-radius:8px; margin-bottom:6px;
+    border-left:4px solid transparent; font-size:14px;
+  }
+  .summary-row.still-in { background:#fff8e1; border-left-color:#f59e0b; }
+  .summary-row.completed { background:#f4f5f5; border-left-color:#c8cccf; }
+
+  .summary-name { font-weight:600; color:#1a2a36; }
+  .summary-detail { font-size:12px; color:#7a8184; margin-top:2px; }
+  .summary-time {
+    font-family:'Montserrat',sans-serif; font-weight:700;
+    font-size:14px; white-space:nowrap;
+  }
+  .summary-row.still-in .summary-time { color:#d97706; }
+  .summary-row.completed .summary-time { color:#003359; }
+
+  .status-pill {
+    font-size:10px; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.06em; padding:2px 8px; border-radius:20px;
+    margin-left:8px;
+  }
+  .pill-in { background:#f59e0b; color:#fff; }
+  .pill-out { background:#c8cccf; color:#5c6a72; }
+
+  /* Stats row */
+  .stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:18px; }
+  .stat-card {
+    background:#eef2f6; border-radius:8px; padding:12px; text-align:center;
+  }
+  .stat-num { font-family:'Montserrat',sans-serif; font-weight:800; font-size:22px; color:#003359; }
+  .stat-label { font-size:11px; color:#7a8184; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-top:2px; }
+
+  #swipeBuffer { position:absolute; left:-9999px; opacity:0; }
+
+  /* Tab panels */
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+</style>
+</head>
+<body>
+
+<div class="toast-container" id="toasts"></div>
+<input type="text" id="swipeBuffer" autocomplete="off" autofocus>
+
+<header>
+  <div>
+    <div class="h-title">SeDR 2026 <span class="h-sub">| Attendance</span></div>
+    <div style="font-size:11px;opacity:0.45;margin-top:1px;letter-spacing:0.03em">2nd Southeastern Dental Research Symposium &bull; April 17, 2026</div>
+  </div>
+  <div class="h-count">
+    <span style="font-size:12px;opacity:0.6">Signed in</span>
+    <span class="h-count-num" id="headerCount">0</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab on" id="tabCheckin" onclick="switchTab('checkin')">Sign In / Out</button>
+    <button class="tab" id="tabLog" onclick="switchTab('log')">Activity Log</button>
+    <button class="tab" id="tabSummary" onclick="switchTab('summary')">Summary</button>
+  </div>
+
+  <!-- TAB: Check In/Out -->
+  <div class="tab-panel active" id="panelCheckin">
+    <div class="card">
+      <div class="badge-status">
+        <div class="badge-dot"></div>
+        Badge reader active &mdash; swipe to toggle sign in / out
+      </div>
+
+      <label class="label">Manual Entry</label>
+      <div class="hint">For attendees without an AU badge, type name and choose an action.</div>
+      <input type="text" class="inp upper" id="nameInput" placeholder="LAST, FIRST" autocomplete="off">
+
+      <div class="btn-row">
+        <button class="btn-signin" onclick="manualAction('in')">Sign In</button>
+        <button class="btn-signout" onclick="manualAction('out')">Sign Out</button>
+      </div>
+    </div>
+
+    <!-- Mini recent log -->
+    <div class="card">
+      <div class="log-header">
+        <div class="title" style="font-size:14px">Recent Activity</div>
+      </div>
+      <div class="log-list" id="miniLog" style="max-height:200px">
+        <div class="empty-log">No activity yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Full Activity Log -->
+  <div class="tab-panel" id="panelLog">
+    <div class="card">
+      <div class="log-header">
+        <div class="title">Full Activity Log</div>
+        <div class="log-count" id="logCount"></div>
+      </div>
+      <div class="log-list" id="logList" style="max-height:600px">
+        <div class="empty-log">No activity yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Summary -->
+  <div class="tab-panel" id="panelSummary">
+    <div class="card">
+      <div class="title" style="margin-bottom:14px">Attendance Overview</div>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-num" id="statTotal">0</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statIn" style="color:#44D62C">0</div>
+          <div class="stat-label">Still In</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statOut">0</div>
+          <div class="stat-label">Signed Out</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Still signed in -->
+    <div class="card" id="cardStillIn" style="display:none">
+      <div class="title" style="font-size:16px;color:#d97706;margin-bottom:12px">&#9888; Still Signed In</div>
+      <div id="stillInList"></div>
+    </div>
+
+    <!-- Completed -->
+    <div class="card" id="cardCompleted" style="display:none">
+      <div class="title" style="font-size:16px;margin-bottom:12px">Completed Visits</div>
+      <div id="completedList"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw7mRClpYnD4hjTy1uR3k7HhKTY6_u2L8Xakim8kFtxbF5V0t6h2XTtSn2oMPKoxao8/exec';
+
+let signedIn = new Map();
+let logEntries = [];
+let swipeBuffer = '';
+let swipeTimeout = null;
+const SWIPE_TIMEOUT_MS = 100;
+let currentTab = 'checkin';
+
+// Track all sessions per person: { name, badgeId, inTime, outTime }
+let sessions = [];
+
+// =============================================================
+// TABS
+// =============================================================
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab' + cap(tab)).classList.add('on');
+  document.getElementById('panel' + cap(tab)).classList.add('active');
+  updateUI();
+  if (tab === 'checkin') document.getElementById('swipeBuffer').focus();
+}
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// =============================================================
+// BADGE SWIPE
+// =============================================================
+document.addEventListener('keydown', (e) => {
+  const nameInput = document.getElementById('nameInput');
+  if (document.activeElement === nameInput) return;
+
+  if (e.key === 'Enter') {
+    if (swipeBuffer.length > 10) {
+      e.preventDefault();
+      processBadgeSwipe(swipeBuffer);
+      swipeBuffer = '';
+      clearTimeout(swipeTimeout);
+    }
+    document.getElementById('swipeBuffer').value = '';
+    return;
+  }
+  if (e.key.length === 1) {
+    swipeBuffer += e.key;
+    clearTimeout(swipeTimeout);
+    swipeTimeout = setTimeout(() => { swipeBuffer = ''; }, SWIPE_TIMEOUT_MS);
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (e.target.id !== 'nameInput') document.getElementById('swipeBuffer').focus();
+});
+
+function parseBadgeData(raw) {
+  try {
+    const t1 = raw.match(/%(\d+)\^([^?]+)\?/);
+    if (!t1) return null;
+    const parts = t1[2].split(',');
+    return { badgeId: t1[1], name: parts[0].trim() + ', ' + (parts[1]||'').trim() };
+  } catch (err) { return null; }
+}
+
+function processBadgeSwipe(raw) {
+  const data = parseBadgeData(raw);
+  if (!data) { showToast('Could not read badge. Try again or enter name manually.', 'error'); return; }
+
+  const key = data.badgeId;
+  const syncKey = 'synced_' + data.name.toLowerCase();
+  // Check if this person is signed in under ANY key (badge, manual, synced)
+  let isIn = false;
+  let existingKey = null;
+  signedIn.forEach((val, k) => {
+    if (val.name.toLowerCase() === data.name.toLowerCase()) { isIn = true; existingKey = k; }
+  });
+
+  if (isIn) {
+    recordAction(data.name, data.badgeId, 'out', 'badge');
+    if (existingKey) signedIn.delete(existingKey);
+    signedIn.delete(key);
+    signedIn.delete(syncKey);
+  } else {
+    recordAction(data.name, data.badgeId, 'in', 'badge');
+    signedIn.set(key, { name: data.name, time: new Date() });
+  }
+  updateUI();
+}
+
+// =============================================================
+// MANUAL
+// =============================================================
+function manualAction(action) {
+  const input = document.getElementById('nameInput');
+  const name = input.value.trim().toUpperCase();
+  if (!name) { showToast('Please enter a name.', 'error'); input.focus(); return; }
+
+  // Check if this person is signed in under ANY key
+  let isIn = false;
+  let existingKey = null;
+  signedIn.forEach((val, k) => {
+    if (val.name.toLowerCase() === name.toLowerCase()) { isIn = true; existingKey = k; }
+  });
+
+  if (action === 'in') {
+    if (isIn) { showToast(name + ' is already signed in.', 'info'); return; }
+    const key = 'manual_' + name.toLowerCase();
+    signedIn.set(key, { name, time: new Date() });
+    recordAction(name, '', 'in', 'manual');
+  } else {
+    if (existingKey) signedIn.delete(existingKey);
+    recordAction(name, '', 'out', 'manual');
+  }
+
+  input.value = '';
+  input.blur();
+  document.getElementById('swipeBuffer').focus();
+  updateUI();
+}
+
+// =============================================================
+// RECORD + SESSIONS
+// =============================================================
+function recordAction(name, badgeId, action, method) {
+  const now = new Date();
+  const entry = { timestamp: now.toISOString(), name, badgeId, action: action === 'in' ? 'Sign In' : 'Sign Out', method: method === 'badge' ? 'Badge' : 'Manual' };
+  logEntries.unshift(entry);
+
+  // Track sessions
+  if (action === 'in') {
+    sessions.push({ name, badgeId, inTime: now, outTime: null });
+  } else {
+    // Find most recent open session for this person
+    for (let i = sessions.length - 1; i >= 0; i--) {
+      if (sessions[i].name.toLowerCase() === name.toLowerCase() && sessions[i].outTime === null) {
+        sessions[i].outTime = now;
+        break;
+      }
+    }
+  }
+
+  const icon = action === 'in' ? '\u2713' : '\u2717';
+  showToast(icon + '  ' + name + ' \u2014 ' + entry.action, action === 'in' ? 'success' : 'error');
+  sendToSheet(entry);
+}
+
+async function sendToSheet(entry) {
+  try {
+    await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
+  } catch (err) { console.error('Sheet error:', err); }
+}
+
+// =============================================================
+// TIME HELPERS
+// =============================================================
+function fmtDuration(ms) {
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h > 0) return h + 'h ' + m + 'm';
+  return m + 'm';
+}
+
+function fmtTime(d) {
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+// =============================================================
+// BUILD SUMMARY DATA
+// =============================================================
+function getSummaryData() {
+  const people = new Map(); // name -> { totalTime, sessions: [{in,out}], stillIn }
+
+  sessions.forEach(s => {
+    const key = s.name.toLowerCase();
+    if (!people.has(key)) {
+      people.set(key, { name: s.name, totalTime: 0, sessionList: [], stillIn: false, lastInTime: null });
+    }
+    const p = people.get(key);
+    if (s.outTime) {
+      const dur = s.outTime - s.inTime;
+      p.totalTime += dur;
+      p.sessionList.push({ inTime: s.inTime, outTime: s.outTime, dur });
+    } else {
+      p.stillIn = true;
+      p.lastInTime = s.inTime;
+      // Running time
+      const dur = new Date() - s.inTime;
+      p.totalTime += dur;
+      p.sessionList.push({ inTime: s.inTime, outTime: null, dur });
+    }
+  });
+
+  return Array.from(people.values());
+}
+
+// =============================================================
+// UI
+// =============================================================
+function updateUI() {
+  document.getElementById('headerCount').textContent = signedIn.size;
+
+  // Mini log (last 5)
+  const miniEl = document.getElementById('miniLog');
+  if (logEntries.length === 0) {
+    miniEl.innerHTML = '<div class="empty-log">No activity yet.</div>';
+  } else {
+    miniEl.innerHTML = logEntries.slice(0, 5).map(renderLogItem).join('');
+  }
+
+  // Full log
+  document.getElementById('logCount').textContent = logEntries.length + ' entries';
+  const logEl = document.getElementById('logList');
+  if (logEntries.length === 0) {
+    logEl.innerHTML = '<div class="empty-log">No activity yet.</div>';
+  } else {
+    logEl.innerHTML = logEntries.slice(0, 200).map(renderLogItem).join('');
+  }
+
+  // Summary
+  updateSummary();
+}
+
+function renderLogItem(e) {
+  const cls = e.action === 'Sign In' ? 'in' : 'out';
+  const t = new Date(e.timestamp);
+  const time = fmtTime(t);
+  const methodIcon = e.method === 'Badge' ? ' \u2022 Badge' : '';
+  return '<div class="log-item ' + cls + '">' +
+    '<div><div class="log-name">' + esc(e.name) + '</div>' +
+    '<div class="log-meta">' + time + methodIcon + '</div></div>' +
+    '<span class="log-badge">' + e.action + '</span></div>';
+}
+
+function updateSummary() {
+  const data = getSummaryData();
+  const stillIn = data.filter(p => p.stillIn).sort((a,b) => b.totalTime - a.totalTime);
+  const completed = data.filter(p => !p.stillIn).sort((a,b) => b.totalTime - a.totalTime);
+
+  document.getElementById('statTotal').textContent = data.length;
+  document.getElementById('statIn').textContent = stillIn.length;
+  document.getElementById('statOut').textContent = completed.length;
+
+  // Still in
+  const siCard = document.getElementById('cardStillIn');
+  const siList = document.getElementById('stillInList');
+  if (stillIn.length > 0) {
+    siCard.style.display = 'block';
+    siList.innerHTML = stillIn.map(p => {
+      const elapsed = fmtDuration(new Date() - p.lastInTime);
+      return '<div class="summary-row still-in">' +
+        '<div><div class="summary-name">' + esc(p.name) + '<span class="status-pill pill-in">IN</span></div>' +
+        '<div class="summary-detail">Since ' + fmtTime(p.lastInTime) + ' \u2022 Total: ' + fmtDuration(p.totalTime) + '</div></div>' +
+        '<div class="summary-time">' + elapsed + '</div></div>';
+    }).join('');
+  } else {
+    siCard.style.display = 'none';
+  }
+
+  // Completed
+  const coCard = document.getElementById('cardCompleted');
+  const coList = document.getElementById('completedList');
+  if (completed.length > 0) {
+    coCard.style.display = 'block';
+    coList.innerHTML = completed.map(p => {
+      const lastSession = p.sessionList[p.sessionList.length - 1];
+      return '<div class="summary-row completed">' +
+        '<div><div class="summary-name">' + esc(p.name) + '<span class="status-pill pill-out">OUT</span></div>' +
+        '<div class="summary-detail">' + p.sessionList.length + ' session' + (p.sessionList.length > 1 ? 's' : '') + ' \u2022 Last out: ' + fmtTime(lastSession.outTime) + '</div></div>' +
+        '<div class="summary-time">' + fmtDuration(p.totalTime) + '</div></div>';
+    }).join('');
+  } else {
+    coCard.style.display = 'none';
+  }
+}
+
+// Refresh running times every 30s
+setInterval(() => { if (currentTab === 'summary') updateSummary(); }, 30000);
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function showToast(msg, type) {
+  const container = document.getElementById('toasts');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
+}
+
+document.getElementById('nameInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const val = document.getElementById('nameInput').value;
+    // Detect if badge data landed in the name field
+    if (val.indexOf('%') === 0 && val.indexOf('^') > 0) {
+      document.getElementById('nameInput').value = '';
+      processBadgeSwipe(val);
+    } else {
+      manualAction('in');
+    }
+  }
+});
+
+// =============================================================
+// SYNC STATE FROM GOOGLE SHEET ON LOAD
+// =============================================================
+async function syncFromSheet() {
+  return new Promise((resolve) => {
+    const cbName = '_syncCb_' + Date.now();
+    const script = document.createElement('script');
+
+    // Timeout after 8 seconds
+    const timeout = setTimeout(() => {
+      cleanup();
+      console.log('Sync timed out');
+      resolve();
+    }, 8000);
+
+    function cleanup() {
+      clearTimeout(timeout);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    window[cbName] = function(data) {
+      cleanup();
+      if (data && data.signedIn) {
+        const serverNames = new Set(data.signedIn.map(n => n.toLowerCase()));
+
+        // Add anyone server says is in but we don't have
+        data.signedIn.forEach(name => {
+          const syncKey = 'synced_' + name.toLowerCase();
+          let found = false;
+          signedIn.forEach((val) => {
+            if (val.name.toLowerCase() === name.toLowerCase()) found = true;
+          });
+          if (!found) {
+            signedIn.set(syncKey, { name, time: new Date() });
+            const hasOpen = sessions.some(s => s.name.toLowerCase() === name.toLowerCase() && !s.outTime);
+            if (!hasOpen) sessions.push({ name, badgeId: '', inTime: new Date(), outTime: null });
+          }
+        });
+
+        // Remove anyone we show as in but server says out
+        const toDelete = [];
+        signedIn.forEach((val, key) => {
+          if (!serverNames.has(val.name.toLowerCase())) toDelete.push(key);
+        });
+        toDelete.forEach(key => {
+          const val = signedIn.get(key);
+          signedIn.delete(key);
+          for (let i = sessions.length - 1; i >= 0; i--) {
+            if (sessions[i].name.toLowerCase() === val.name.toLowerCase() && !sessions[i].outTime) {
+              sessions[i].outTime = new Date();
+              break;
+            }
+          }
+        });
+
+        updateUI();
+      }
+      resolve();
+    };
+
+    script.src = APPS_SCRIPT_URL + '?callback=' + cbName;
+    script.onerror = () => { cleanup(); console.log('Sync request failed'); resolve(); };
+    document.body.appendChild(script);
+  });
+}
+syncFromSheet();
+// Poll every 10 seconds for cross-computer sync
+setInterval(syncFromSheet, 10000);
+
+document.getElementById('swipeBuffer').focus();
+</script>
+</body>
+</html>
