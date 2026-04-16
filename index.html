@@ -223,6 +223,7 @@
       <label class="label">Manual Entry</label>
       <div class="hint">For attendees without an AU badge, type name and choose an action.</div>
       <input type="text" class="inp upper" id="nameInput" placeholder="LAST, FIRST" autocomplete="off">
+      <input type="text" class="inp upper" id="affiliationInput" placeholder="AFFILIATION (IF NOT DCG)" autocomplete="off" style="margin-top:10px">
 
       <div class="btn-row">
         <button class="btn-signin" onclick="manualAction('in')">Sign In</button>
@@ -328,7 +329,8 @@ function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 // =============================================================
 document.addEventListener('keydown', (e) => {
   const nameInput = document.getElementById('nameInput');
-  if (document.activeElement === nameInput) return;
+  const affInput = document.getElementById('affiliationInput');
+  if (document.activeElement === nameInput || document.activeElement === affInput) return;
 
   if (e.key === 'Enter') {
     if (swipeBuffer.length > 10) {
@@ -348,7 +350,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('click', (e) => {
-  if (e.target.id !== 'nameInput') document.getElementById('swipeBuffer').focus();
+  if (e.target.id !== 'nameInput' && e.target.id !== 'affiliationInput') document.getElementById('swipeBuffer').focus();
 });
 
 function parseBadgeData(raw) {
@@ -374,12 +376,12 @@ function processBadgeSwipe(raw) {
   });
 
   if (isIn) {
-    recordAction(data.name, data.badgeId, 'out', 'badge');
+    recordAction(data.name, data.badgeId, 'out', 'badge', 'DCG');
     if (existingKey) signedIn.delete(existingKey);
     signedIn.delete(key);
     signedIn.delete(syncKey);
   } else {
-    recordAction(data.name, data.badgeId, 'in', 'badge');
+    recordAction(data.name, data.badgeId, 'in', 'badge', 'DCG');
     signedIn.set(key, { name: data.name, time: new Date() });
   }
   updateUI();
@@ -390,7 +392,9 @@ function processBadgeSwipe(raw) {
 // =============================================================
 function manualAction(action) {
   const input = document.getElementById('nameInput');
+  const affInput = document.getElementById('affiliationInput');
   const name = input.value.trim().toUpperCase();
+  const affiliation = affInput.value.trim().toUpperCase() || 'DCG';
   if (!name) { showToast('Please enter a name.', 'error'); input.focus(); return; }
 
   // Check if this person is signed in under ANY key
@@ -404,13 +408,14 @@ function manualAction(action) {
     if (isIn) { showToast(name + ' is already signed in.', 'info'); return; }
     const key = 'manual_' + name.toLowerCase();
     signedIn.set(key, { name, time: new Date() });
-    recordAction(name, '', 'in', 'manual');
+    recordAction(name, '', 'in', 'manual', affiliation);
   } else {
     if (existingKey) signedIn.delete(existingKey);
-    recordAction(name, '', 'out', 'manual');
+    recordAction(name, '', 'out', 'manual', affiliation);
   }
 
   input.value = '';
+  affInput.value = '';
   input.blur();
   document.getElementById('swipeBuffer').focus();
   updateUI();
@@ -419,9 +424,9 @@ function manualAction(action) {
 // =============================================================
 // RECORD + SESSIONS
 // =============================================================
-function recordAction(name, badgeId, action, method) {
+function recordAction(name, badgeId, action, method, affiliation) {
   const now = new Date();
-  const entry = { timestamp: now.toISOString(), name, badgeId, action: action === 'in' ? 'Sign In' : 'Sign Out', method: method === 'badge' ? 'Badge' : 'Manual' };
+  const entry = { timestamp: now.toISOString(), name, badgeId, action: action === 'in' ? 'Sign In' : 'Sign Out', method: method === 'badge' ? 'Badge' : 'Manual', affiliation: affiliation || 'DCG' };
   logEntries.unshift(entry);
 
   // Track sessions
@@ -524,9 +529,10 @@ function renderLogItem(e) {
   const t = new Date(e.timestamp);
   const time = fmtTime(t);
   const methodIcon = e.method === 'Badge' ? ' \u2022 Badge' : '';
+  const affTag = e.affiliation && e.affiliation !== 'DCG' ? ' \u2022 ' + esc(e.affiliation) : '';
   return '<div class="log-item ' + cls + '">' +
     '<div><div class="log-name">' + esc(e.name) + '</div>' +
-    '<div class="log-meta">' + time + methodIcon + '</div></div>' +
+    '<div class="log-meta">' + time + methodIcon + affTag + '</div></div>' +
     '<span class="log-badge">' + e.action + '</span></div>';
 }
 
@@ -590,8 +596,22 @@ document.getElementById('nameInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
     const val = document.getElementById('nameInput').value;
-    // Detect if badge data landed in the name field
     if (val.indexOf('%') === 0 && val.indexOf('^') > 0) {
+      document.getElementById('nameInput').value = '';
+      document.getElementById('affiliationInput').value = '';
+      processBadgeSwipe(val);
+    } else {
+      manualAction('in');
+    }
+  }
+});
+
+document.getElementById('affiliationInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const val = document.getElementById('affiliationInput').value;
+    if (val.indexOf('%') === 0 && val.indexOf('^') > 0) {
+      document.getElementById('affiliationInput').value = '';
       document.getElementById('nameInput').value = '';
       processBadgeSwipe(val);
     } else {
