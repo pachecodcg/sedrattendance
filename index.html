@@ -223,7 +223,25 @@
       <label class="label">Manual Entry</label>
       <div class="hint">For attendees without an AU badge, type name and choose an action.</div>
       <input type="text" class="inp upper" id="nameInput" placeholder="LAST, FIRST" autocomplete="off">
-      <input type="text" class="inp upper" id="affiliationInput" placeholder="AFFILIATION (IF NOT DCG)" autocomplete="off" style="margin-top:10px">
+      <select class="inp" id="affiliationInput" style="margin-top:10px;-webkit-appearance:none;appearance:none;background:#fff url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23003359' stroke-width='2' fill='none'/%3E%3C/svg%3E&quot;) no-repeat right 14px center;cursor:pointer">
+        <option value="">AFFILIATION (IF NOT DCG)</option>
+        <option value="DCG">DCG - Dental College of Georgia, Augusta University</option>
+        <option value="UAB">UAB - University of Alabama at Birmingham</option>
+        <option value="UF">UF - University of Florida</option>
+        <option value="MUSC">MUSC - Medical University of South Carolina</option>
+        <option value="UNC">UNC - University of North Carolina</option>
+        <option value="NSU">NSU - Nova Southeastern University</option>
+        <option value="UMMC">UMMC - University of Mississippi Medical Center</option>
+        <option value="FORT GORDON">Fort Gordon / Fort Bragg</option>
+        <option value="LMU">LMU - Lincoln Memorial University</option>
+        <option value="EMORY">Emory University</option>
+        <option value="GEORGIA STATE">Georgia State University</option>
+        <option value="GEORGIA TECH">Georgia Institute of Technology</option>
+        <option value="KENNESAW STATE">Kennesaw State University</option>
+        <option value="MERCER">Mercer University</option>
+        <option value="OTHER">Other</option>
+      </select>
+      <input type="text" class="inp upper" id="affiliationOther" placeholder="ENTER AFFILIATION" autocomplete="off" style="margin-top:10px;display:none">
 
       <div class="btn-row">
         <button class="btn-signin" onclick="manualAction('in')">Sign In</button>
@@ -298,7 +316,7 @@
 </div>
 
 <script>
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw7mRClpYnD4hjTy1uR3k7HhKTY6_u2L8Xakim8kFtxbF5V0t6h2XTtSn2oMPKoxao8/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxelGmU3g8dB3999JZqK1CzPpoHT_muMV9PqwDxgw_SZjlQnrOAUKFKiv4RGXkuCR4q/exec';
 
 let signedIn = new Map();
 let logEntries = [];
@@ -330,7 +348,8 @@ function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 document.addEventListener('keydown', (e) => {
   const nameInput = document.getElementById('nameInput');
   const affInput = document.getElementById('affiliationInput');
-  if (document.activeElement === nameInput || document.activeElement === affInput) return;
+  const affOther = document.getElementById('affiliationOther');
+  if (document.activeElement === nameInput || document.activeElement === affInput || document.activeElement === affOther) return;
 
   if (e.key === 'Enter') {
     if (swipeBuffer.length > 10) {
@@ -350,7 +369,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('click', (e) => {
-  if (e.target.id !== 'nameInput' && e.target.id !== 'affiliationInput') document.getElementById('swipeBuffer').focus();
+  if (e.target.id !== 'nameInput' && e.target.id !== 'affiliationInput' && e.target.id !== 'affiliationOther') document.getElementById('swipeBuffer').focus();
 });
 
 function parseBadgeData(raw) {
@@ -392,9 +411,14 @@ function processBadgeSwipe(raw) {
 // =============================================================
 function manualAction(action) {
   const input = document.getElementById('nameInput');
-  const affInput = document.getElementById('affiliationInput');
+  const affSelect = document.getElementById('affiliationInput');
+  const affOther = document.getElementById('affiliationOther');
   const name = input.value.trim().toUpperCase();
-  const affiliation = affInput.value.trim().toUpperCase() || 'DCG';
+  let affiliation = affSelect.value || 'DCG';
+  if (affiliation === 'OTHER') {
+    affiliation = affOther.value.trim().toUpperCase();
+    if (!affiliation) { showToast('Please enter affiliation.', 'error'); affOther.focus(); return; }
+  }
   if (!name) { showToast('Please enter a name.', 'error'); input.focus(); return; }
 
   // Check if this person is signed in under ANY key
@@ -415,7 +439,9 @@ function manualAction(action) {
   }
 
   input.value = '';
-  affInput.value = '';
+  affSelect.value = '';
+  affOther.value = '';
+  affOther.style.display = 'none';
   input.blur();
   document.getElementById('swipeBuffer').focus();
   updateUI();
@@ -599,6 +625,8 @@ document.getElementById('nameInput').addEventListener('keydown', (e) => {
     if (val.indexOf('%') === 0 && val.indexOf('^') > 0) {
       document.getElementById('nameInput').value = '';
       document.getElementById('affiliationInput').value = '';
+      document.getElementById('affiliationOther').value = '';
+      document.getElementById('affiliationOther').style.display = 'none';
       processBadgeSwipe(val);
     } else {
       manualAction('in');
@@ -606,13 +634,26 @@ document.getElementById('nameInput').addEventListener('keydown', (e) => {
   }
 });
 
-document.getElementById('affiliationInput').addEventListener('keydown', (e) => {
+// Show/hide Other field when dropdown changes
+document.getElementById('affiliationInput').addEventListener('change', (e) => {
+  const otherField = document.getElementById('affiliationOther');
+  if (e.target.value === 'OTHER') {
+    otherField.style.display = 'block';
+    otherField.focus();
+  } else {
+    otherField.style.display = 'none';
+    otherField.value = '';
+  }
+});
+
+document.getElementById('affiliationOther').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
-    const val = document.getElementById('affiliationInput').value;
+    const val = document.getElementById('affiliationOther').value;
     if (val.indexOf('%') === 0 && val.indexOf('^') > 0) {
-      document.getElementById('affiliationInput').value = '';
+      document.getElementById('affiliationOther').value = '';
       document.getElementById('nameInput').value = '';
+      document.getElementById('affiliationInput').value = '';
       processBadgeSwipe(val);
     } else {
       manualAction('in');
